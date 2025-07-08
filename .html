@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Tiny Town Helper</title>
+<style>
+  body { font-family: Arial, sans-serif; padding: 20px; }
+  #grid { display: grid; grid-template-columns: repeat(5, 50px); grid-gap: 5px; margin-bottom: 20px; }
+  .cell {
+    width: 50px; height: 50px;
+    border: 1px solid #888;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; user-select: none;
+    font-weight: bold;
+    font-size: 16px;
+    background-color: #cce5ff;
+    transition: background-color 0.3s ease;
+  }
+  .forbidden {
+    background-color: #555 !important;
+    color: white;
+    cursor: default;
+  }
+  .piece-1 { background-color: #a2d149; } /* Gras - groen */
+  .piece-2 { background-color: #6ca354; } /* Heg - donkergroen */
+  .piece-3 { background-color: #a36734; } /* Boom - bruin */
+  .piece-4 { background-color: #ffcc66; } /* Hutje - geel */
+  .piece-5 { background-color: #ff9966; } /* Huis - oranje */
+  .piece-6 { background-color: #cc6699; } /* Mansion - roze */
+  .piece-7 { background-color: #6666cc; } /* Kasteel - blauw */
+  .piece-8 { background-color: #66cccc; } /* Floating Castle - aqua */
+  .best-move {
+    outline: 3px solid red;
+  }
+  #best-move {
+    margin-top: 10px;
+    font-weight: bold;
+  }
+  button {
+    margin-top: 10px;
+    padding: 8px 15px;
+    font-size: 14px;
+  }
+</style>
+</head>
+<body>
+
+<h1>Tiny Town Helper</h1>
+
+<div id="grid"></div>
+
+<label for="pieceRank">Kies rank puzzelstuk:</label>
+<select id="pieceRank">
+  <option value="1">1 - Gras</option>
+  <option value="2">2 - Heg</option>
+  <option value="3">3 - Boom</option>
+  <option value="4">4 - Hutje</option>
+  <option value="5">5 - Huis</option>
+  <option value="6">6 - Mansion</option>
+  <option value="7">7 - Kasteel</option>
+  <option value="8">8 - Floating Castle</option>
+</select>
+
+<br/>
+
+<button id="calcBest">Bereken beste zet</button>
+
+<div id="best-move"></div>
+
+<script>
+// Grid data: 5x5, 0=leeg, -1=verboden
+let grid = [
+  [-1, 0, 0, 0, 0],
+  [ 0, 0, 0, 0, 0],
+  [ 0, 0, 0, 0, 0],
+  [ 0, 0, 0, 0, 0],
+  [ 0, 0, 0, 0, 0]
+];
+
+const RANKS = {
+  1: "Gras",
+  2: "Heg",
+  3: "Boom",
+  4: "Hutje",
+  5: "Huis",
+  6: "Mansion",
+  7: "Kasteel",
+  8: "Floating Castle"
+};
+
+function renderGrid() {
+  const container = document.getElementById("grid");
+  container.innerHTML = "";
+  for (let i = 0; i < 5; i++) {
+    for (let j = 0; j < 5; j++) {
+      const cell = document.createElement("div");
+      cell.classList.add("cell");
+      const val = grid[i][j];
+      if (val === -1) {
+        cell.classList.add("forbidden");
+        cell.textContent = "X";
+      } else if (val > 0) {
+        cell.classList.add("piece-" + val);
+        cell.textContent = val;
+      } else {
+        cell.textContent = "";
+      }
+      cell.dataset.row = i;
+      cell.dataset.col = j;
+
+      if (val !== -1) {
+        cell.addEventListener("click", () => {
+          placePiece(i, j);
+        });
+      }
+
+      container.appendChild(cell);
+    }
+  }
+}
+
+function placePiece(row, col) {
+  const rank = parseInt(document.getElementById("pieceRank").value);
+  if (grid[row][col] === 0) {
+    grid[row][col] = rank;
+    renderGrid();
+    document.getElementById("best-move").textContent = "";
+  }
+}
+
+document.getElementById("calcBest").addEventListener("click", () => {
+  const rank = parseInt(document.getElementById("pieceRank").value);
+  calculateBestMove(rank);
+});
+
+function calculateBestMove(rank) {
+  let emptyCells = [];
+  for (let i=0; i<5; i++) {
+    for(let j=0; j<5; j++) {
+      if(grid[i][j] === 0) emptyCells.push([i,j]);
+    }
+  }
+  if(emptyCells.length === 0) {
+    document.getElementById("best-move").textContent = "Geen lege vakjes meer!";
+    return;
+  }
+  const best = emptyCells[0];
+  highlightBestMove(best[0], best[1]);
+  document.getElementById("best-move").textContent = `Tip: Plaats rank ${rank} (${RANKS[rank]}) op rij ${best[0]+1}, kolom ${best[1]+1}`;
+}
+
+function highlightBestMove(row, col) {
+  document.querySelectorAll(".cell").forEach(cell => {
+    cell.classList.remove("best-move");
+  });
+  const cells = document.querySelectorAll(".cell");
+  for(let cell of cells) {
+    if(parseInt(cell.dataset.row) === row && parseInt(cell.dataset.col) === col) {
+      cell.classList.add("best-move");
+      break;
+    }
+  }
+}
+
+renderGrid();
+</script>
+
+</body>
+</html>
