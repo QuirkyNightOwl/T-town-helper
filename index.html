@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8" />
+  <title>Tiny Town Helper</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+    }
+    table {
+      border-collapse: collapse;
+      margin-top: 15px;
+    }
+    td {
+      border: 1px solid black;
+      width: 40px;
+      height: 40px;
+      text-align: center;
+      vertical-align: middle;
+      cursor: pointer;
+      font-weight: bold;
+      font-size: 20px;
+      user-select: none;
+    }
+    #message {
+      margin-top: 15px;
+      font-size: 22px;
+      font-weight: bold;
+      color: green;
+    }
+    button {
+      margin: 10px 5px 0 0;
+      padding: 10px 15px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Startscherm -->
+  <div id="startScreen">
+    <h2>Wat wil je doen?</h2>
+    <button id="fillPiecesBtn">Puzzelstukken invullen</button>
+    <button id="skipBtn">Overslaan</button>
+  </div>
+
+  <!-- Hoofd game scherm -->
+  <div id="game" style="display:none;">
+    <h2>Je puzzelstuk invoeren</h2>
+    <div id="gridContainer"></div>
+    <button id="undoBtn">Undo</button>
+    <div id="message">Floating castles, here I come!</div>
+  </div>
+
+<script>
+  // Elementen
+  const startScreen = document.getElementById('startScreen');
+  const game = document.getElementById('game');
+  const fillPiecesBtn = document.getElementById('fillPiecesBtn');
+  const skipBtn = document.getElementById('skipBtn');
+  const undoBtn = document.getElementById('undoBtn');
+  const gridContainer = document.getElementById('gridContainer');
+
+  // Variabelen
+  const gridSize = 5;
+  let currentState = Array(gridSize).fill(null).map(() => Array(gridSize).fill(null));
+  let history = [];
+
+  // Diepe kopie van grid maken voor history
+  function cloneGrid(grid) {
+    return grid.map(row => row.slice());
+  }
+
+  // Opslaan huidige staat
+  function saveState() {
+    history.push(cloneGrid(currentState));
+  }
+
+  // Render grid functie
+  function renderGrid() {
+    gridContainer.innerHTML = ''; // schoonmaken
+    const table = document.createElement('table');
+
+    currentState.forEach((row, i) => {
+      const tr = document.createElement('tr');
+      row.forEach((cell, j) => {
+        const td = document.createElement('td');
+        td.textContent = cell === null ? '' : cell;
+
+        td.onclick = () => {
+          // Voorbeeld toggelen rank 1 'G' (gras)
+          if (currentState[i][j] === null) {
+            saveState();
+            currentState[i][j] = 'G';
+          } else {
+            saveState();
+            currentState[i][j] = null;
+          }
+          renderGrid();
+        };
+
+        tr.appendChild(td);
+      });
+      table.appendChild(tr);
+    });
+
+    gridContainer.appendChild(table);
+  }
+
+  // Undo functie
+  undoBtn.onclick = () => {
+    if (history.length > 0) {
+      currentState = history.pop();
+      renderGrid();
+    } else {
+      alert('Geen zetten om ongedaan te maken.');
+    }
+  };
+
+  // Start invullen
+  fillPiecesBtn.onclick = () => {
+    startScreen.style.display = 'none';
+    game.style.display = 'block';
+    saveState(); // eerste staat opslaan
+    renderGrid();
+  };
+
+  // Overslaan invoer
+  skipBtn.onclick = () => {
+    startScreen.style.display = 'none';
+    game.style.display = 'block';
+    alert('Je hebt gekozen om puzzelstuk invoer over te slaan.');
+    renderGrid();
+  };
+</script>
+
+</body>
+</html>
