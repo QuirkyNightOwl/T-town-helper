@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tiny Town Helper</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    table { border-collapse: collapse; margin-bottom: 10px; }
+    td {
+      width: 40px;
+      height: 40px;
+      border: 1px solid #000;
+      text-align: center;
+      vertical-align: middle;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    #controls { margin-bottom: 10px; }
+    #tip { margin-top: 10px; font-weight: bold; color: green; }
+  </style>
+</head>
+<body>
+
+  <h1>Tiny Town Helper</h1>
+
+  <div id="controls">
+    <label for="piece">Voer een puzzelstuk in (1=Gras, 2=Heg, ..., 8=Floating Castle):</label>
+    <input type="number" id="piece" min="1" max="8">
+    <button onclick="handlePieceInput()">Voer in</button>
+    <button onclick="undoMove()">Undo</button>
+  </div>
+
+  <div id="grid"></div>
+  <div id="tip"></div>
+
+  <script>
+    const gridSize = 5;
+    const forbiddenCell = [0, 0];
+    let grid = Array.from({ length: gridSize }, () => Array(gridSize).fill(0));
+    let history = [];
+
+    function saveHistory() {
+      history.push(grid.map(row => [...row]));
+    }
+
+    function undoMove() {
+      if (history.length > 0) {
+        grid = history.pop();
+        renderGrid();
+        document.getElementById('tip').textContent = '';
+      }
+    }
+
+    function renderGrid() {
+      const gridContainer = document.getElementById('grid');
+      gridContainer.innerHTML = '';
+      const table = document.createElement('table');
+
+      for (let i = 0; i < gridSize; i++) {
+        const row = document.createElement('tr');
+        for (let j = 0; j < gridSize; j++) {
+          const cell = document.createElement('td');
+          if (i === forbiddenCell[0] && j === forbiddenCell[1]) {
+            cell.style.backgroundColor = '#ccc';
+            cell.textContent = 'X';
+          } else {
+            const val = grid[i][j];
+            cell.textContent = val === 0 ? '' : val;
+          }
+          row.appendChild(cell);
+        }
+        table.appendChild(row);
+      }
+
+      gridContainer.appendChild(table);
+    }
+
+    function getBestPlacement(piece) {
+      // Dummy logica voor beste zet, te vervangen met echte AI/algoritme
+      for (let i = 0; i < gridSize; i++) {
+        for (let j = 0; j < gridSize; j++) {
+          if ((i !== forbiddenCell[0] || j !== forbiddenCell[1]) && grid[i][j] === 0) {
+            return [i, j];
+          }
+        }
+      }
+      return null;
+    }
+
+    function handlePieceInput() {
+      const piece = parseInt(document.getElementById('piece').value);
+      if (!piece || piece < 1 || piece > 8) {
+        alert('Voer een geldig puzzelstuk in (1 t/m 8).');
+        return;
+      }
+
+      const placement = getBestPlacement(piece);
+      if (placement) {
+        const [i, j] = placement;
+        saveHistory();
+        grid[i][j] = piece;
+        renderGrid();
+        document.getElementById('tip').textContent = `Plaats puzzelstuk van rank ${piece} op (${i + 1}, ${j + 1})`;
+      } else {
+        alert('Geen lege plek beschikbaar.');
+      }
+    }
+
+    renderGrid();
+  </script>
+</body>
+</html>
