@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Tiny Town Helper</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    table { border-collapse: collapse; margin-bottom: 10px; }
+    td {
+      width: 40px;
+      height: 40px;
+      border: 1px solid #000;
+      text-align: center;
+      vertical-align: middle;
+      font-weight: bold;
+      cursor: pointer;
+      user-select: none;
+    }
+    #controls { margin-bottom: 10px; }
+    #tip { margin-top: 10px; font-weight: bold; color: green; min-height: 1.5em; }
+    p { max-width: 500px; line-height: 1.5; }
+    input[type=number] { width: 60px; }
+    button { margin-left: 5px; }
+  </style>
+</head>
+<body>
+
+  <h1>Tiny Town Helper</h1>
+
+  <div id="controls">
+    <p>
+      Voer een puzzelstuk in en klik daarna op een vakje in het grid om te plaatsen:<br>
+      1=Gras, 2=Heg, 3=Boom, 4=Hutje, 5=Huis, 6=Mansion, 7=Kasteel, 8=Floating Castle<br>
+      Linksboven vakje (1,1) is verboden (grijs, X).
+    </p>
+
+    <div id="input-mode-controls">
+      <input type="number" id="piece" min="1" max="8" placeholder="Rank" />
+      <button onclick="undoMove()">Undo</button>
+      <button id="finishInputBtn" onclick="finishInput()">Klaar met invullen</button>
+    </div>
+
+    <div id="helper-mode-controls" style="display:none; margin-top:10px;">
+      <input type="number" id="nextPiece" min="1" max="8" placeholder="Volgend stuk" />
+      <button onclick="generateBestMove()">Genereer beste zet</button>
+    </div>
+  </div>
+
+  <div id="grid"></div>
+  <div id="tip"></div>
+
+  <p style="margin-top: 20px; font-weight: bold;">Floating castles, here I come!</p>
+
+  <script>
+    const gridSize = 5;
+    const forbiddenCell = [0, 0];
+    let grid = Array.from({ length: gridSize }, () => Array(gridSize).fill(0));
+    let history = [];
+
+    let inputMode = true; // true = startstukken invullen, false = helper actief
+
+    function saveHistory() {
+      history.push(grid.map(row => [...row]));
+    }
+
+    function undoMove() {
+      if (history.length > 0) {
+        grid = history.pop();
+        renderGrid();
+        document.getElementById('tip').textContent = '';
+      }
+    }
+
+    function renderGrid() {
+      const gridContainer = document.getElementById('grid');
+      gridContainer.innerHTML = '';
+      const table = document.createElement('table');
+
+      for (let i = 0; i < gridSize; i++) {
+        const row = document.createElement('tr');
+        for (let j = 0; j < gridSize; j++) {
+          const cell = document.createElement('td');
+          if (i === forbiddenCell[0] && j === forbiddenCell[1]) {
+            cell.style.backgroundColor = '#ccc';
+            cell.textContent = 'X';
+            cell.style.cursor = 'default';
+          } else {
+            const val = grid[i][j];
+            cell.textContent = val === 0 ? '' : val;
+            if (inputMode) {
+              cell.style.cursor = 'pointer';
+              cell.onclick = () => handleCellClick(i, j);
+            } else {
+              cell.style.cursor = 'default';
+              cell.onclick = null;
+            }
+          }
+          row.appendChild(cell);
+        }
+        table.appendChild(row);
+      }
+      gridContainer.appendChild(table);
+    }
+
+    function handleCellClick(i, j) {
+      if (!inputMode) return;
+
+      const pieceInput = document.getElementById('piece');
+      const piece = parseInt(pieceInput.value);
+      if (!piece || piece < 1 || piece > 8) {
+        alert('Voer een geldig puzzelstuk in (1 t/m 8).');
+        return;
+      }
+
+      if (i === forbiddenCell[0] && j === forbiddenCell[1]) {
+        alert('Dit vakje is niet toegestaan.');
+        return;
+      }
+
+      if (grid[i][j] !== 0) {
+        alert('Dat vakje is al bezet.');
+        return;
+      }
+
+      saveHistory();
+      grid[i][j] = piece;
+      renderGrid();
+      document.getElementById('tip').textContent = `Puzzelstuk van rank ${piece} geplaatst op (${i + 1}, ${j + 1})`;
+      pieceInput.value = '';
+    }
+
+    function finishInput() {
+      inputMode = false;
+      document.getElementById('piece').disabled = true;
+      document.getElementById('finishInputBtn').disabled = true;
+      document.getElementById('helper-mode-controls').style.display = 'block';
+      document.getElementById('tip').textContent = 'Helper gestart. Kies het volgende puzzelstuk en klik op "Genereer beste zet".';
+      renderGrid();
+    }
+
+    function generateBestMove() {
+      const pieceInput = document.getElementById('nextPiece');
+      const piece = parseInt(pieceInput.value);
+      if (!piece || piece < 1 || piece > 8) {
+        alert('Voer een geldig puzzelstuk in (1 t/m 8).');
+        return;
+      }
+
+      let best = null;
+      let maxMatches = -1;
+
+      for (let i = 0; i < gridSize; i++) {
+        for (let j = 0; j < gridSize; j++) {
+          if (i === forbiddenCell[0] && j === forbiddenCell[1]) continue;
+          if (grid[i][j] !== 0) continue;
+
+          const matches = countMatches(i, j, piece);
+          if (matches > maxMatches) {
+            maxMatches = matches;
+            best = [i, j];
+          }
+        }
+      }
+
+      if (best) {
+        const [r, c] = best;
+        document.getElementById('tip').textContent = `Beste plek voor stuk ${piece}: rij ${r + 1}, kolom ${c + 1} (gelijke buren: ${maxMatches})`;
+      } else {
+        document.getElementById('tip').textContent = 'Geen geldige zet gevonden.';
+      }
+    }
+
+    function countMatches(i, j, piece) {
+      const dirs = [
+        [-1, 0], [1, 0],
+        [0, -1], [0, 1],
+        [-1, -1], [-1, 1],
+        [1, -1], [1, 1]
+      ];
+      let count = 0;
+      for (const [dx, dy] of dirs) {
+        const ni = i + dx, nj = j + dy;
+        if (ni >= 0 && ni < gridSize && nj >= 0 && nj < gridSize) {
+          if (grid[ni][nj] === piece) count++;
+        }
+      }
+      return count;
+    }
+
+    renderGrid();
+  </script>
+
+</body>
+</html>
